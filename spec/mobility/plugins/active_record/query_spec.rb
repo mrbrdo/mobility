@@ -110,6 +110,26 @@ describe Mobility::Plugins::ActiveRecord::Query, orm: :active_record, type: :plu
           expect { Article.i18n { author([]).eq("foo") } }.to raise_error(Mobility::InvalidLocale)
         end
       end
+
+      it "uses Translation's default_scope if it was set" do
+        # apply default_scope to Translation class, like paranoia gem would
+        Article::Translation.send(:default_scope) { where.not(title: "DELETED") }
+
+        Mobility.locale = :en
+        article = Article.create!(title: "New Article")
+        association_name = article.mobility_backends[:title].association_name
+        expect(Article.i18n { title(:en).eq("New Article") }).to eq([article])
+
+        article.translations.first.update title: "DELETED"
+        article.reload
+
+        # default_scope filters translations on model instance
+        expect(article.translations).to be_empty
+        expect(article.mobility_backends[:title].read(:en)).to be_nil
+
+        # default_scope filters translations when querying
+        expect(Article.i18n { title(:en).eq("DELETED") }).to be_empty
+      end
     end
 
     # TODO: Test more thoroughly
