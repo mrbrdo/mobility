@@ -8,7 +8,9 @@
 /spec/reports/
 /tmp/
 
-.ruby-version
 .byebug_history
 Guardfile
 *.gem
+
+/.ruby-version
+/.ruby-gemset
