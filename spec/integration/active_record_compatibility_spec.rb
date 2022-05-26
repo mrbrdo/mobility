@@ -160,6 +160,32 @@ describe "ActiveRecord compatibility", orm: :active_record do
     end
   end
 
+  describe "after_create hooks interaction with table backend" do
+    it "saves translations to DB before hooks, even if hooks are created before translates is called" do
+      stub_const 'Comment', Class.new(ActiveRecord::Base)
+      Comment.belongs_to :article
+
+      stub_const 'Article', Class.new(ActiveRecord::Base)
+      Article.has_one :comment
+
+      article_title_1 = nil
+
+      Comment.after_save do
+        article_title_1 = self.article.title
+      end
+
+      Article.after_create do
+        Comment.create!(article_id: self.id)
+      end
+
+      # it is important that translates is called after the after_* hooks
+      # in this spec
+      translates Article, :title, backend: :table
+      Article.create!(title: "Some Title")
+      expect(article_title_1).to eq("Some Title")
+    end
+  end
+
   describe "merging translated and untranslated scopes" do
     # regression for https://github.com/shioyama/mobility/issues/266
     it "returns correct result" do
